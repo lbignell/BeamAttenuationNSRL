@@ -1,0 +1,34 @@
+4/29/14
+- This was copied over from EdepNSRL2014.
+- This will be a very simple simulation to calculate the spread in beam energies
+  due to the attenuation at the beam window, etc. The thickness of window
+  material is determined by the known beam energy prior to extraction, the goal
+  beam energy, and the stopping power.
+
+Calculation of window thickness:
+
+  The window material was assumed to be Pyrex glass (NIST composition and
+  density = 2.23 g/cm^3). Using pstar, this gives a stopping power at 475 MeV
+  of 5.24496 MeV/cm and at 2 GeV of 3.80884 MeV/cm.
+
+  The beam energy prior to extraction was 0.477379978 GeV for nominally 475 MeV
+  protons and 2.00165 GeV for nominally 2 GeV protons.
+
+  Based on these values, the 475 MeV beam predicts a glass thickness of 4.54 mm,
+  and the 2 GeV beam predicts a glass thickness of 4.33 mm. I'll take the
+  average at 4.43 mm.
+
+- I've set up a simple simulation that fires a proton beam at a pyrex target of
+  that thickness, and gets the energy deposit (~beam energy lost) in the target.
+
+- The Edep distribution is not Gaussian (it rises sharply at low Edep and has a
+  long log-linear tail). There is also a smattering of high energy deposit
+  events that are probably due to hadronic/hard scattering interactions.
+
+- 475 MeV beam: mean = 2.316 MeV, stdev = 0.34 MeV.
+- 2 GeV beam: mean = 1.643 MeV, stdev = 0.44 MeV.
+
+- The easiest thing to do (and given the fact that the spread is quite small
+  -- <0.1% -- it is a fair approximation) is to treat the beam at the target as
+  a Gaussian with a mean of the intended beam energy and a standard deviation of
+  the simulated standard deviations given above.

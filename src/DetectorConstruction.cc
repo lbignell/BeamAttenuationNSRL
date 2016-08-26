@@ -1,0 +1,104 @@
+//This will be a simple goemetry just to check and see if I can get it working
+
+#include "DetectorConstruction.hh"
+//include header files for all classes used in the methods
+#include "globals.hh"
+#include "G4Material.hh"
+#include "G4PVPlacement.hh"
+#include "G4LogicalVolume.hh"
+#include "G4Box.hh"
+#include "G4VisAttributes.hh"
+#include "G4SystemOfUnits.hh"
+
+//for sensitive detector definition
+#include "SensitiveDetector.hh"
+#include "G4SDManager.hh"
+
+#include "G4NistManager.hh"
+#include "G4RunManager.hh"
+#include "DetectorMessenger.hh"
+
+//constructor / destructor do nothing
+DetectorConstruction::DetectorConstruction(){
+  AbsThickness = 4.43*mm;//subtract 10 mm for flattener.
+  DetMess = new DetectorMessenger(this);
+}
+
+DetectorConstruction::~DetectorConstruction(){ 
+
+}
+
+void DetectorConstruction::SetAbsThickness(G4double value){
+  AbsThickness = value;
+}
+
+G4double DetectorConstruction::GetAbsThickness(){
+  return AbsThickness;
+}
+
+void DetectorConstruction::UpdateGeometry(){
+  G4RunManager::GetRunManager()->DefineWorldVolume(Construct(), true);
+  G4RunManager::GetRunManager()->GeometryHasBeenModified();
+}
+
+G4VPhysicalVolume* DetectorConstruction::Construct(){
+/* materials definition */
+  
+  // Get nist material manager
+  G4NistManager* nist = G4NistManager::Instance();
+  
+  G4Material* water_nist = nist->FindOrBuildMaterial("G4_WATER");
+  G4Material* air_nist = nist->FindOrBuildMaterial("G4_AIR");
+  G4Material* HDPE_nist = nist->FindOrBuildMaterial("G4_POLYETHYLENE");
+  G4Material* pyrex_nist = nist->FindOrBuildMaterial("G4_Pyrex_Glass");
+
+ 
+/*the volumes: */
+
+  G4double worldx = 1 * m;
+  G4double worldy = 1 * m;
+  G4double worldz = 1 * m;
+  
+  //the whole simulation must be contained within a "world" volume
+  //defining a volume requires definition of solid, logical, and physical volume
+  //solid volume is the shape, has dimensions
+  G4Box* world = new G4Box("world_box", worldx, worldy, worldz);
+  
+  //logical volume: has a solid volume as a member, a material, last 3???
+  G4LogicalVolume* logical_world =
+    new G4LogicalVolume(world, air_nist, "world_log", 0,0,0);
+  
+  //make the world invisible!
+  logical_world->SetVisAttributes(G4VisAttributes::Invisible);
+
+  //physical volume: G4PVPlacement class, represents a logical volume that is
+  //placed somewhere in the mother volume.
+  G4VPhysicalVolume* physical_world =
+    new G4PVPlacement(0,G4ThreeVector(),logical_world,"world_phys",0,false,0);
+  
+  
+  //OK, now I need to add the pyrex_nist absorber.
+  //G4Box arguments: name, 0.5*(x dimension, y dimension, z dimension).
+  G4double pyrex_nistthickness = AbsThickness;//Defaults to 233*mm;
+  G4Box* pyrex_nistabs = new G4Box("pyrex_nist absorber", 100*mm,
+				   (pyrex_nistthickness/2), 100*mm);
+  
+  G4LogicalVolume* logical_pyrex_nistabs =
+    new G4LogicalVolume(pyrex_nistabs, pyrex_nist, "abs_log", 0, 0, 0);
+  
+  //create SensitiveDetector object
+  SensitiveDetector* SD = new SensitiveDetector("abs_log");
+  G4SDManager* SDman = G4SDManager::GetSDMpointer();
+  //pass to manager
+  SDman->AddNewDetector(SD);
+  logical_pyrex_nistabs->SetSensitiveDetector(SD);
+  
+  //pyrex_nistabs centre is
+  //vial outer diameter + 5mm (flattener) + 1/2*pyrex_nistthickness.
+  G4VPhysicalVolume* physical_pyrex_nistabs =
+    new G4PVPlacement(0, G4ThreeVector(0,0,0), logical_pyrex_nistabs,
+		      "pyrex_nistabs_phys", logical_world, false, 0);
+  
+  
+  return physical_world;
+}
